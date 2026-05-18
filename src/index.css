@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: "Amazon Ember", "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 14px; color: #16191f; background: #f2f3f3; }
+#root { min-height: 100vh; }
+
+/* AWS Table styles */
+.aws-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.aws-table th { background: #fafafa; border-bottom: 2px solid #e9ebed; padding: 8px 12px; text-align: left; font-weight: 700; color: #16191f; white-space: nowrap; }
+.aws-table td { padding: 8px 12px; border-bottom: 1px solid #e9ebed; color: #16191f; vertical-align: middle; }
+.aws-table tr:hover td { background: #f2f8fd; }
+.aws-table tr.selected td { background: #e8f4fd; }
+
+/* AWS Form controls */
+.aws-input { border: 1px solid #aab7b8; border-radius: 2px; padding: 6px 10px; font-size: 13px; width: 100%; outline: none; color: #16191f; background: #fff; transition: border 0.15s, box-shadow 0.15s; }
+.aws-input:focus { border-color: #0073bb; box-shadow: 0 0 0 1px #0073bb; }
+.aws-select { border: 1px solid #aab7b8; border-radius: 2px; padding: 6px 28px 6px 10px; font-size: 13px; outline: none; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23545b64'/%3E%3C/svg%3E") no-repeat right 10px center; appearance: none; cursor: pointer; }
+.aws-select:focus { border-color: #0073bb; box-shadow: 0 0 0 1px #0073bb; }
+
+/* AWS Buttons */
+.btn-aws-primary { background: linear-gradient(to bottom, #ec7211, #eb5f07); color: #fff; border: 1px solid #bd3f00; border-radius: 2px; padding: 6px 16px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.1s; }
+.btn-aws-primary:hover { background: linear-gradient(to bottom, #e8620b, #d45505); }
+.btn-aws-secondary { background: linear-gradient(to bottom, #fff, #f2f3f3); color: #545b64; border: 1px solid #aab7b8; border-radius: 2px; padding: 6px 16px; font-size: 13px; cursor: pointer; white-space: nowrap; transition: all 0.1s; }
+.btn-aws-secondary:hover { background: linear-gradient(to bottom, #f2f3f3, #e8eaed); border-color: #879596; }
+.btn-aws-danger { background: linear-gradient(to bottom, #fff, #f2f3f3); color: #d13212; border: 1px solid #d13212; border-radius: 2px; padding: 6px 16px; font-size: 13px; cursor: pointer; }
+.btn-aws-danger:hover { background: #fdf3f1; }
+.btn-aws-link { background: none; border: none; color: #0073bb; font-size: 13px; cursor: pointer; padding: 0; text-decoration: none; }
+.btn-aws-link:hover { text-decoration: underline; color: #005276; }
+
+/* AWS Card */
+.aws-card { background: #fff; border: 1px solid #e9ebed; border-radius: 4px; }
+
+/* AWS Panel header */
+.aws-panel-header { background: #fff; border: 1px solid #e9ebed; border-radius: 4px 4px 0 0; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e9ebed; }
+.aws-panel-body { background: #fff; border: 1px solid #e9ebed; border-top: none; border-radius: 0 0 4px 4px; }
+
+/* Badge */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 2px; font-size: 12px; font-weight: 600; }
+.badge-green { background: #1d8348; color: #fff; }
+.badge-yellow { background: #f39c12; color: #fff; }
+.badge-red { background: #d13212; color: #fff; }
+.badge-gray { background: #879596; color: #fff; }
+.badge-blue { background: #0073bb; color: #fff; }
+.badge-outline-green { background: #d5f5e3; color: #1d8348; border: 1px solid #a9dfbf; }
+.badge-outline-red { background: #fdf3f1; color: #d13212; border: 1px solid #f5b7b1; }
+.badge-outline-gray { background: #f2f3f3; color: #545b64; border: 1px solid #c5c5c5; }
+.badge-outline-blue { background: #e8f4fd; color: #0073bb; border: 1px solid #bcd9ea; }
+
+/* Checkbox */
+.aws-checkbox { width: 14px; height: 14px; cursor: pointer; accent-color: #0073bb; }
+
+/* Modal overlay */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+.modal-box { background: #fff; border-radius: 4px; box-shadow: 0 4px 24px rgba(0,0,0,0.3); width: 560px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+.modal-header { padding: 16px 20px; border-bottom: 1px solid #e9ebed; display: flex; justify-content: space-between; align-items: center; }
+.modal-body { padding: 20px; }
+.modal-footer { padding: 12px 20px; border-top: 1px solid #e9ebed; display: flex; gap: 8px; justify-content: flex-end; }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; right: 24px; background: #1a2535; color: #fff; padding: 12px 18px; border-radius: 4px; font-size: 13px; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); max-width: 360px; }
+.toast-success { border-left: 4px solid #1d8348; }
+.toast-error { border-left: 4px solid #d13212; }
+
+/* Code block */
+.code-block { background: #16191f; color: #d4d4d4; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 12px; overflow-x: auto; white-space: pre-wrap; }
+
+/* Tabs */
+.aws-tabs { display: flex; gap: 0; border-bottom: 2px solid #e9ebed; margin-bottom: 16px; }
+.aws-tab { padding: 8px 16px; font-size: 13px; cursor: pointer; border: none; background: none; color: #545b64; border-bottom: 2px solid transparent; margin-bottom: -2px; font-weight: 400; transition: all 0.1s; }
+.aws-tab:hover { color: #16191f; background: #f2f3f3; }
+.aws-tab.active { color: #ec7211; border-bottom-color: #ec7211; font-weight: 700; }
+
+/* Misc */
+.page-title { font-size: 18px; font-weight: 700; color: #16191f; margin: 0; }
+.section-title { font-size: 15px; font-weight: 700; color: #16191f; margin: 0; }
+.text-muted { color: #545b64; }
+.text-link { color: #0073bb; cursor: pointer; text-decoration: none; }
+.text-link:hover { text-decoration: underline; }
+.divider { border: none; border-top: 1px solid #e9ebed; margin: 16px 0; }
+.spinner { width: 20px; height: 20px; border: 2px solid #e9ebed; border-top-color: #0073bb; border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.search-box { display: flex; align-items: center; gap: 6px; border: 1px solid #aab7b8; border-radius: 2px; padding: 5px 10px; background: #fff; }
+.search-box:focus-within { border-color: #0073bb; box-shadow: 0 0 0 1px #0073bb; }
+.search-box input { border: none; outline: none; font-size: 13px; flex: 1; }
