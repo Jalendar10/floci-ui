@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Search, ChevronDown, Bell, HelpCircle, Settings, Globe, User, Menu } from 'lucide-react'
+import { Search, ChevronDown, Bell, HelpCircle, Settings, Globe, User, Menu, Bot } from 'lucide-react'
+import AIPanel from './AIPanel'
 
 const SERVICE_GROUPS = [
   {
@@ -85,8 +86,8 @@ const ALL_SERVICES = SERVICE_GROUPS.flatMap(g => g.services)
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [servicesOpen, setServicesOpen] = useState(false)
-
   const [accountOpen, setAccountOpen] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
   const [search, setSearch] = useState('')
   const location = useLocation()
   const navigate = useNavigate()
@@ -213,6 +214,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <button style={{ padding: '0 12px', height: '100%', background: 'none', border: 'none', color: '#fff', cursor: 'pointer', borderLeft: '1px solid #3d4f5e' }}>
             <Settings size={14} />
           </button>
+          {/* AI Agent toggle */}
+          <button onClick={() => setAiOpen(o => !o)} title="AI Agent"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', height: '100%',
+              background: aiOpen ? '#ff9900' : 'none', border: 'none',
+              color: aiOpen ? '#232f3e' : '#ff9900', cursor: 'pointer',
+              borderLeft: '1px solid #3d4f5e', fontSize: 12, fontWeight: 700,
+            }}>
+            <Bot size={15} />
+            AI
+          </button>
         </div>
       </nav>
 
@@ -229,9 +241,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         )}
       </div>
 
-      {/* Content */}
-      <div style={{ minHeight: 'calc(100vh - 84px)' }}>
-        {children}
+      {/* Content + AI Panel side by side */}
+      <div style={{ display: 'flex', minHeight: 'calc(100vh - 84px)', alignItems: 'flex-start' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {children}
+        </div>
+        {aiOpen && <AIPanel onClose={() => setAiOpen(false)} />}
       </div>
     </div>
   )
