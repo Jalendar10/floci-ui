@@ -6,52 +6,61 @@ A complete AWS Management Console-style UI for [Floci](https://github.com/floci-
 
 ## Quick Start
 
-One script does everything — installs Docker if missing, pulls the image, and opens your browser:
+Clone this repo and run one script. It handles everything — installs Docker if missing, builds both Floci and the UI from source, and opens your browser.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Jalendar10/floci-ui/main/start.sh | bash
-```
-
-Or if you already cloned the repo:
-
-```bash
+git clone https://github.com/Jalendar10/floci-ui.git
+cd floci-ui
 ./start.sh
 ```
 
-Then open **http://localhost:3000** — that's it. No configuration needed. Any AWS credentials work (`test`/`test`).
+**First run takes 5-10 minutes** (Maven downloads ~500 MB of dependencies once, then caches them).  
+After that, starting is instant.
 
----
-
-## How it works
-
-Everything runs inside **one Docker container**:
-
-```
-Browser (localhost:3000)
-       │
-       ▼
-  nginx (port 3000, inside container)
-       │
-       ├── GET /             → React SPA (built UI)
-       │
-       └── /floci/*          → Floci AWS emulator (port 4566, same container)
-                                    │
-                                    └── All 47 AWS service APIs
-```
-
-**supervisord** manages both nginx and Floci inside the container. No CORS issues — the browser always talks to the same origin.
+Open **http://localhost:3000** — any AWS credentials work (`test`/`test`).
 
 ---
 
 ## Commands
 
 ```bash
-./start.sh           # start (auto-installs Docker if needed)
-./start.sh stop      # stop and remove container
-./start.sh logs      # tail live logs
-./start.sh status    # show running status
-./start.sh update    # pull latest image and restart
+./start.sh           # build (first time only) then start
+./start.sh stop      # stop the container
+./start.sh logs      # tail live logs from both services
+./start.sh status    # show whether it's running
+./start.sh update    # pull latest Floci source from GitHub, rebuild, restart
+./start.sh build     # rebuild image without restarting
 ```
+
+**`./start.sh update`** is how you get the latest Floci code — it re-clones
+[floci-io/floci](https://github.com/floci-io/floci) and rebuilds the image from scratch.
+
+---
+
+## How it works
+
+Everything runs inside **one Docker container**, built from two GitHub repos:
+
+```
+git clone floci-io/floci       ← Floci AWS emulator (built with Maven)
+git clone Jalendar10/floci-ui  ← React UI (built with Vite)
+         │
+         ▼
+  Single Docker container
+  ┌─────────────────────────────────────────┐
+  │  supervisord                            │
+  │  ├── Floci (java -jar, port 4566)       │
+  │  └── nginx (port 3000)                  │
+  │       ├── GET /  → React SPA            │
+  │       └── /floci/* → Floci API          │
+  └─────────────────────────────────────────┘
+         │
+         ▼
+  Browser: http://localhost:3000
+```
+
+nginx reverse-proxies `/floci/*` → Floci on port 4566 inside the container,
+so there are no CORS issues and no separate configuration needed.
 
 ---
 
@@ -84,8 +93,6 @@ Browser (localhost:3000)
 
 ## AWS CLI access
 
-Use the AWS CLI directly against Floci:
-
 ```bash
 export AWS_ENDPOINT_URL=http://localhost:4566
 export AWS_DEFAULT_REGION=us-east-1
@@ -100,12 +107,12 @@ aws lambda list-functions
 
 ---
 
-## Development
+## Development (UI only)
 
-Run the UI locally against a running Floci container:
+Run just the React UI against a running Floci container:
 
 ```bash
-# Start Floci
+# Start Floci separately
 docker run -d --name floci \
   -p 4566:4566 \
   -v /var/run/docker.sock:/var/run/docker.sock \
@@ -113,30 +120,24 @@ docker run -d --name floci \
   -u root \
   floci/floci:latest
 
-# Run the UI dev server
+# Run UI dev server (hot reload)
 npm install
 npm run dev
 # → http://localhost:3000
-```
-
-### Build the combined image
-
-```bash
-docker build -t jalendar10/floci-ui:latest .
-docker push jalendar10/floci-ui:latest
 ```
 
 ---
 
 ## Tech stack
 
-- **React 18** + TypeScript + Vite
-- **AWS SDK v3** — browser-compatible, all services
-- **Tailwind CSS** — utility styling
+- **React 18** + TypeScript + Vite — UI
+- **AWS SDK v3** — browser-compatible, all 47 service clients
+- **Tailwind CSS** — styling
 - **React Router v6** — client-side routing
-- **nginx** — static file server + reverse proxy inside the container
-- **supervisord** — manages nginx + Floci in one container
-- **Debian bookworm-slim** — container base (supports Floci's native binary)
+- **Floci** — local AWS emulator, built from source at build time
+- **nginx** — serves UI + proxies `/floci/*` to Floci inside the container
+- **supervisord** — manages both nginx and Floci in one container
+- **eclipse-temurin:25-jre** — JVM runtime base image
 
 ---
 

@@ -1,18 +1,23 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
 # Floci UI Launcher
-# Installs Docker automatically if missing, then starts Floci + UI together.
-# Usage: ./start.sh        → start
-#        ./start.sh stop   → stop
-#        ./start.sh logs   → tail logs
-#        ./start.sh update → pull latest image and restart
+#
+# Builds Floci + the UI from source on first run, then starts both together
+# inside a single Docker container. No separate setup needed.
+#
+# Usage: ./start.sh           → build (if needed) and start
+#        ./start.sh stop      → stop
+#        ./start.sh logs      → tail logs
+#        ./start.sh status    → show status
+#        ./start.sh update    → pull latest Floci source, rebuild, restart
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-IMAGE="jalendar10/floci-ui:latest"
+IMAGE="floci-ui:latest"
 CONTAINER="floci-ui"
 UI_PORT=3000
 API_PORT=4566
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── Colours ────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
@@ -26,7 +31,6 @@ banner()  { echo -e "\n${BOLD}$*${RESET}\n"; }
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 OS="$(uname -s)"
-ARCH="$(uname -m)"
 
 docker_installed() { command -v docker &>/dev/null; }
 docker_running()   { docker info &>/dev/null 2>&1; }
@@ -38,15 +42,13 @@ install_docker_linux() {
     sh /tmp/get-docker.sh
     rm /tmp/get-docker.sh
 
-    # Start and enable service
     if command -v systemctl &>/dev/null; then
         sudo systemctl enable docker --now 2>/dev/null || true
     fi
 
-    # Add current user to docker group so we don't need sudo next time
     if ! groups | grep -q docker; then
         sudo usermod -aG docker "$USER" 2>/dev/null || true
-        warn "Added $USER to the docker group. You may need to log out and back in for group changes to take effect."
+        warn "Added $USER to the docker group. You may need to log out and back in."
     fi
     success "Docker installed."
 }
@@ -57,7 +59,7 @@ install_docker_mac() {
         brew install --cask docker
         info "Launching Docker Desktop..."
         open -a Docker
-        info "Waiting for Docker Desktop to start (this may take up to 60 seconds)..."
+        info "Waiting for Docker Desktop to start (up to 60 seconds)..."
         local i=0
         while ! docker_running && [ $i -lt 60 ]; do
             sleep 2; i=$((i+2)); printf "."
@@ -66,7 +68,7 @@ install_docker_mac() {
         if docker_running; then
             success "Docker Desktop is running."
         else
-            error "Docker Desktop did not start in time. Please open it manually and re-run this script."
+            error "Docker Desktop did not start in time. Open it manually and re-run this script."
             exit 1
         fi
     else
@@ -138,6 +140,29 @@ ensure_docker() {
     esac
 }
 
+# ── Build image from source ────────────────────────────────────────────────
+# Builds Floci (from https://github.com/floci-io/floci) + the React UI
+# into a single image. Pass FRESH=1 to force a fresh Floci clone.
+cmd_build() {
+    local fresh="${1:-0}"
+    banner "Building Floci UI from source"
+    info "  → Floci source: https://github.com/floci-io/floci"
+    info "  → UI source:    $(basename "$SCRIPT_DIR")"
+    echo ""
+    warn "First build takes 5-10 minutes (downloading Maven dependencies)."
+    warn "Subsequent builds are much faster thanks to Docker layer cache."
+    echo ""
+
+    local build_args=()
+    if [ "$fresh" = "1" ]; then
+        info "Forcing fresh Floci source clone..."
+        build_args+=(--build-arg "CACHEBUST=$(date +%s)")
+    fi
+
+    docker build "${build_args[@]}" -t "$IMAGE" "$SCRIPT_DIR"
+    success "Build complete."
+}
+
 # ── Sub-commands ───────────────────────────────────────────────────────────
 cmd_stop() {
     info "Stopping Floci UI..."
@@ -162,23 +187,14 @@ cmd_status() {
 }
 
 cmd_update() {
-    info "Pulling latest image..."
-    docker pull "$IMAGE"
+    banner "Updating to latest Floci source"
+    ensure_docker
+    cmd_build "1"   # fresh=1 → re-clones Floci from GitHub
     cmd_stop 2>/dev/null || true
-    cmd_start
+    cmd_run
 }
 
-cmd_start() {
-    ensure_docker
-
-    banner "🚀 Starting Floci UI"
-
-    # Pull image if not present (or on update)
-    if ! docker image inspect "$IMAGE" &>/dev/null; then
-        info "Pulling image ${IMAGE}..."
-        docker pull "$IMAGE"
-    fi
-
+cmd_run() {
     # Remove stale container
     docker rm -f "$CONTAINER" 2>/dev/null || true
 
@@ -195,10 +211,10 @@ cmd_start() {
         -e FLOCI_SERVICES_DOCKER_NETWORK=floci-net \
         "$IMAGE" > /dev/null
 
-    # Wait for health check
-    info "Waiting for services to be ready..."
+    # Wait for Floci health (JVM starts in ~30-60s)
+    info "Waiting for services to be ready (JVM startup, please wait)..."
     local i=0
-    while [ $i -lt 30 ]; do
+    while [ $i -lt 120 ]; do
         if docker exec "$CONTAINER" curl -sf http://localhost:4566/_floci/health &>/dev/null 2>&1; then
             break
         fi
@@ -217,7 +233,7 @@ cmd_start() {
     echo ""
     echo "  Stop:   ./start.sh stop"
     echo "  Logs:   ./start.sh logs"
-    echo "  Update: ./start.sh update"
+    echo "  Update: ./start.sh update   ← rebuilds with latest Floci source"
     echo ""
 
     # Auto-open browser
@@ -231,6 +247,17 @@ cmd_start() {
     esac
 }
 
+cmd_start() {
+    ensure_docker
+
+    # Build from source if the image doesn't exist yet
+    if ! docker image inspect "$IMAGE" &>/dev/null; then
+        cmd_build "0"
+    fi
+
+    cmd_run
+}
+
 # ── Main ───────────────────────────────────────────────────────────────────
 case "${1:-start}" in
     start)  cmd_start  ;;
@@ -238,8 +265,9 @@ case "${1:-start}" in
     logs)   cmd_logs   ;;
     status) cmd_status ;;
     update) cmd_update ;;
+    build)  ensure_docker && cmd_build "0" ;;
     *)
-        echo "Usage: $0 {start|stop|logs|status|update}"
+        echo "Usage: $0 {start|stop|logs|status|update|build}"
         exit 1
         ;;
 esac
