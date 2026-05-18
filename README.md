@@ -4,17 +4,54 @@ A complete AWS Management Console-style UI for [Floci](https://github.com/floci-
 
 ---
 
-## Quick Start (Docker)
+## Quick Start
 
-One command to start everything — Floci + the UI together:
+One script does everything — installs Docker if missing, pulls the image, and opens your browser:
 
 ```bash
-docker compose up
+curl -fsSL https://raw.githubusercontent.com/Jalendar10/floci-ui/main/start.sh | bash
 ```
 
-Then open **http://localhost:3000** in your browser.
+Or if you already cloned the repo:
 
-That's it. No configuration needed. Any AWS credentials work (`test`/`test`).
+```bash
+./start.sh
+```
+
+Then open **http://localhost:3000** — that's it. No configuration needed. Any AWS credentials work (`test`/`test`).
+
+---
+
+## How it works
+
+Everything runs inside **one Docker container**:
+
+```
+Browser (localhost:3000)
+       │
+       ▼
+  nginx (port 3000, inside container)
+       │
+       ├── GET /             → React SPA (built UI)
+       │
+       └── /floci/*          → Floci AWS emulator (port 4566, same container)
+                                    │
+                                    └── All 47 AWS service APIs
+```
+
+**supervisord** manages both nginx and Floci inside the container. No CORS issues — the browser always talks to the same origin.
+
+---
+
+## Commands
+
+```bash
+./start.sh           # start (auto-installs Docker if needed)
+./start.sh stop      # stop and remove container
+./start.sh logs      # tail live logs
+./start.sh status    # show running status
+./start.sh update    # pull latest image and restart
+```
 
 ---
 
@@ -45,49 +82,9 @@ That's it. No configuration needed. Any AWS credentials work (`test`/`test`).
 
 ---
 
-## Screenshots
-
-The UI looks and works like the real AWS Console:
-- Dark top navigation with service search and account info
-- Left sidebar with service-specific sub-navigation
-- AWS-style tables with sorting, filtering, and row selection
-- Create/delete modals with proper form validation
-- Toast notifications for every action
-- Breadcrumb navigation
-
----
-
-## How it works
-
-```
-Browser (localhost:3000)
-       │
-       ▼
-  nginx (Floci UI container)
-       │
-       ├── GET /             → serves React SPA
-       │
-       └── /floci/*          → proxies to Floci container:4566
-                                    │
-                                    └── All 47 AWS service APIs
-```
-
-The nginx reverse proxy handles routing so there are no CORS issues — the browser always talks to the same origin.
-
----
-
-## Services running
-
-| Container | Port | Purpose |
-|---|---|---|
-| `floci-ui` | `3000` | React UI served by nginx |
-| `floci` | `4566` | Floci AWS emulator (all 47 services) |
-
----
-
 ## AWS CLI access
 
-You can also use the AWS CLI directly against Floci:
+Use the AWS CLI directly against Floci:
 
 ```bash
 export AWS_ENDPOINT_URL=http://localhost:4566
@@ -122,12 +119,11 @@ npm run dev
 # → http://localhost:3000
 ```
 
-### Build for production
+### Build the combined image
 
 ```bash
-npm run build          # outputs to dist/
-docker compose build   # builds the Docker image
-docker compose up      # runs everything
+docker build -t jalendar10/floci-ui:latest .
+docker push jalendar10/floci-ui:latest
 ```
 
 ---
@@ -138,8 +134,9 @@ docker compose up      # runs everything
 - **AWS SDK v3** — browser-compatible, all services
 - **Tailwind CSS** — utility styling
 - **React Router v6** — client-side routing
-- **nginx** — production static file server + reverse proxy
-- **Docker Compose** — orchestrates Floci + UI together
+- **nginx** — static file server + reverse proxy inside the container
+- **supervisord** — manages nginx + Floci in one container
+- **Debian bookworm-slim** — container base (supports Floci's native binary)
 
 ---
 
